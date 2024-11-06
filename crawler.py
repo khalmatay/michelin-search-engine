@@ -1,4 +1,5 @@
 import time
+from typing import List
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,7 +13,7 @@ def get_html(url):
     return response.content
 
 
-def get_number_of_max_pages():
+def get_number_of_max_pages() -> int:
     html = get_html(CONST_URL)
     soup = BeautifulSoup(html, "html.parser")
     last_page_link = soup.select(
@@ -21,7 +22,7 @@ def get_number_of_max_pages():
     return max_pages
 
 
-def get_restaurant_urls(max_pages):
+def get_restaurant_urls(max_pages) -> List[str]:
     restaurant_urls = []
     page = 1
     while page <= max_pages:
@@ -30,7 +31,6 @@ def get_restaurant_urls(max_pages):
         soup = BeautifulSoup(html, "html.parser")
 
         print(page, url)
-
 
         restaurant_list = soup.select("div.row.restaurant__list-row.js-restaurant__list_items a.link")
 
@@ -49,7 +49,7 @@ def get_restaurant_urls(max_pages):
     return restaurant_urls
 
 
-def save_urls_to_file(restaurant_urls):
+def save_urls_to_file(restaurant_urls) -> None:
     with open('restaurant_urls.txt', 'w') as f:
         for url in restaurant_urls:
             f.write(url + "\n")
