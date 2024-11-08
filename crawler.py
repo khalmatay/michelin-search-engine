@@ -56,11 +56,11 @@ def save_urls_to_file(restaurant_urls) -> None:
     print(f"Saved {len(restaurant_urls)} URL into restaurant_urls.txt")
 
 
-def crawler():
+def main():
     max_pages = get_number_of_max_pages()
     restaurant_urls = get_restaurant_urls(max_pages)
     save_urls_to_file(restaurant_urls)
 
 
 if __name__ == "__main__":
-    crawler()
+    main()

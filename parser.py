@@ -1,12 +1,7 @@
 import os
+
 import pandas as pd
 from bs4 import BeautifulSoup
-
-columns = [
-    "restaurantName", "address", "city", "postalCode", "country",
-    "priceRange", "cuisineType", "description", "facilitiesServices",
-    "creditCards", "phoneNumber", "website"
-]
 
 
 def get_data(html_content):
@@ -62,21 +57,31 @@ def get_data(html_content):
     return restaurant_data
 
 
-restaurant_data_list = []
-count = 0
-data_folder = 'data'
-for page in os.listdir(data_folder):
-    page_path = os.path.join(data_folder, page)
-    for link in os.listdir(page_path):
-        full_path = os.path.join(page_path, link)
-        count += 1
-        print(full_path, "Number " + str(count))
-        with open(full_path, 'r', encoding='utf-8') as file:
-            content = file.read()
+def main():
+    columns = [
+        "restaurantName", "address", "city", "postalCode", "country",
+        "priceRange", "cuisineType", "description", "facilitiesServices",
+        "creditCards", "phoneNumber", "website"
+    ]
+    restaurant_data_list = []
+    count = 0
+    data_folder = 'data'
 
-        restaurant_data = get_data(content)
-        restaurant_data_list.append(restaurant_data)
+    for page in os.listdir(data_folder):
+        page_path = os.path.join(data_folder, page)
+        for link in os.listdir(page_path):
+            full_path = os.path.join(page_path, link)
+            count += 1
+            print(full_path, "Number " + str(count))
+            with open(full_path, 'r', encoding='utf-8') as file:
+                content = file.read()
 
-restaurants_df = pd.DataFrame(restaurant_data_list, columns=columns)
-restaurants_df.insert(0, 'index', range(len(restaurants_df)))
-restaurants_df.to_csv("restaurants_data.csv", index=False, encoding="utf-8")
+            restaurant_data = get_data(content)
+            restaurant_data_list.append(restaurant_data)
+
+    restaurants_df = pd.DataFrame(restaurant_data_list, columns=columns)
+    restaurants_df.to_csv("restaurants_data.csv", index=False, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    main()
