@@ -80,7 +80,7 @@ def main():
             restaurant_data_list.append(restaurant_data)
 
     restaurants_df = pd.DataFrame(restaurant_data_list, columns=columns)
-    restaurants_df.to_csv("restaurants_data.csv", index=False, encoding="utf-8")
+    restaurants_df.to_csv("restaurants_i.tsv", index=False, encoding="utf-8", sep = "\t")
 
 
 if __name__ == "__main__":
