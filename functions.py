@@ -1,10 +1,7 @@
 import pandas as pd
-from bs4 import BeautifulSoup
 import re
-import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
-from tabulate import tabulate
 
 
 def clener_pipeline(querry):
@@ -16,6 +13,7 @@ def clener_pipeline(querry):
     querry = [word.strip() for word in querry.split(" ") if word.lower() not in stop_words]
     processed_querry = [stemmer.stem(word) for word in querry]
     return processed_querry
+
 def description_cleaner(descriptions):
     result = []
     
@@ -68,29 +66,3 @@ def restourants_matcher(matching_resturants):
         matches &= set(restourant)
     
     return list(matches)
-    
-
-
-def querry_reciver(querry, restaurants_df, vocabulary, reverse_index):
-    processed_querry = clener_pipeline(querry)
-    processed_querry = [vocabulary[key] for key in processed_querry if key in vocabulary.keys()]
-    
-    if len(processed_querry) == 0 :
-        print("We don't have that in the kitchen!\nChoose something else.")
-        return False
-    
-    matching_resturants = [reverse_index[key] for key in processed_querry]
-    matching_resturants = restourants_matcher(matching_resturants)
-
-    print(f"We found {len(matching_resturants)} matches!\n")
-    if len(matching_resturants) == 0 :
-        print("We don't have that in the kitchen!\nChoose something else.")
-        return False
-    
-    matching_resturants = sorted(matching_resturants)
-    restaurants_df = restaurants_df.loc[matching_resturants, ["restaurantName", "address", "description", "website"]]
-    
-    print(tabulate(restaurants_df.iloc[:5], headers=["Restaurant Name", "Address", "Description", "Website"], tablefmt="rounded_grid", showindex=False))
-    
-    return True
-
