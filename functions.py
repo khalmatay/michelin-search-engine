@@ -1,9 +1,11 @@
 import pandas as pd
 import re
+from math import log
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 # Uncomment to download stopwords if they are not available
 # nltk.download('stopwords')
+from tabulate import tabulate
 
 
 def clener_pipeline(querry):
@@ -69,10 +71,10 @@ def vocabulary_creator(descriptions):
         counter += 1
     
     # Call the word_to_id function, passing in the descriptions and the word-to-ID mapping
-    return word_to_id(descriptions, res, counter)
+    return word_to_id(descriptions, res)
 
 
-def word_to_id(descriptions, vocab, counter):
+def word_to_id(descriptions, vocab):
     # Initialize an empty list to store the ID representation of each description
     result = []
     
@@ -90,8 +92,8 @@ def word_to_id(descriptions, vocab, counter):
         # Append the list of word IDs for the current description to the result list
         result.append(mono_result)
     
-    # Return a list of word IDs for each description, the vocabulary, and the total number of words
-    return [result, vocab, counter]
+    # Return a list of word IDs for each description and the vocabularys
+    return [result, vocab]
 
 
 def reverse_index_creator(ID_descriptions):
@@ -122,3 +124,89 @@ def restourants_matcher(matching_resturants):
     
     # Convert the final set of matching restaurant IDs to a list and return it
     return list(matches)
+
+
+def compute_TF(descriptions):
+    TF_res = {}
+    for index, descirpt in enumerate(descriptions):
+        one_restourant_result = {}
+        tot_words = len(descirpt)
+        for word in descirpt:
+            one_restourant_result[word] = one_restourant_result.get(word, 0) + 1 / tot_words
+        one_restourant_result = list(one_restourant_result.items())
+        TF_res[index] = one_restourant_result
+    
+    return TF_res
+
+
+def compute_IDF(reverse_index, tot_documents):
+    result_IDF = {}
+
+    for word, doc_list in reverse_index.items():
+        word_IDF = log(tot_documents/len(doc_list))
+        result_IDF[word] = word_IDF
+    
+    return result_IDF
+
+
+def compute_TF_IDF(tf_dict, idf_dict):
+
+    tf_idf_result = {}
+
+    for restournat, word_and_tf in tf_dict.items():
+        for word, TF_value in word_and_tf:
+
+            if word not in tf_idf_result:
+                tf_idf_result[word] = []
+            
+            idf_val = idf_dict.get(word, 0)
+
+            tf_idf = TF_value * idf_val
+
+            tf_idf_result[word].append((restournat, tf_idf))
+    
+    return tf_idf_result
+
+def reverse_TF_IDF(reverse_index_tf_idf):
+    
+    # Initialize normal index as a defaultdict of lists
+    normal_index = {}
+
+    # Iterate through reverse index to create the normal index
+    for word, doc_list in reverse_index_tf_idf.items():
+        for doc_id, tfidf_value in doc_list:
+            if doc_id not in normal_index:
+                normal_index[doc_id] = []
+            normal_index[doc_id].append((word, tfidf_value))
+    
+    return normal_index
+
+
+def top_k_printer(matching_resturants, restaurants_df):
+    # Print the number of matching restaurants found
+    print(f"We found {len(matching_resturants)} matches!\n")
+    
+    # Check if any restaurants match the query; exit if no matches were found
+    if len(matching_resturants) == 0:
+        print("We don't have that in the kitchen!\nChoose something else.")
+        return False  # Exit if no matching restaurants were found
+    
+    # Filter the DataFrame to only include rows with matching restaurant IDs
+    restaurants_df = restaurants_df.loc[matching_resturants, ["restaurantName", "address", "description", "website"]]
+    
+    # Truncate the description to 47 characters and add "..." if it exceeds 30 characters
+    restaurants_df["description"] = [descript[0:47] + "..." if len(descript) > 30 else descript for descript in restaurants_df["description"]]
+    
+    # Display the top 5 matches in a formatted table with specific headers and settings
+    print(tabulate(
+        restaurants_df.iloc[:5],  # Select only the top 5 matching restaurants
+        headers=["Restaurant Name", "Address", "Description", "Website"],  # Column headers for the table
+        tablefmt="rounded_grid",  # Table format style
+        showindex=False,  # Hide row index in the display
+        maxcolwidths=25  # Maximum width for each column to ensure readability
+    ))
+    
+    # Return True to indicate that matching restaurants were successfully displayed
+    return True
+
+# def cosine_similarity():
