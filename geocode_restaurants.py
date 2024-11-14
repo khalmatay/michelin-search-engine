@@ -1,11 +1,11 @@
 import os
 
 import requests
-
-api_key = os.getenv("API_KEY")
 from dotenv import load_dotenv
 
 load_dotenv()
+
+api_key = os.getenv("API_KEY")
 
 
 def get_region_and_coordinates(city):
