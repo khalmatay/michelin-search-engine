@@ -7,12 +7,14 @@ from bs4 import BeautifulSoup
 CONST_URL = "https://guide.michelin.com/en/it/restaurants"
 
 
+# load all website's link to text file
 def get_html(url):
     response = requests.get(url)
     response.raise_for_status()
     return response.content
 
 
+# get the maximum pages from site, which need to stop parser
 def get_number_of_max_pages() -> int:
     html = get_html(CONST_URL)
     soup = BeautifulSoup(html, "html.parser")
@@ -22,6 +24,7 @@ def get_number_of_max_pages() -> int:
     return max_pages
 
 
+# parse every url from txt file
 def get_restaurant_urls(max_pages) -> List[str]:
     restaurant_urls = []
     page = 1
@@ -49,6 +52,7 @@ def get_restaurant_urls(max_pages) -> List[str]:
     return restaurant_urls
 
 
+# save to tsv file, parsed data
 def save_urls_to_file(restaurant_urls) -> None:
     with open('restaurant_urls.txt', 'w') as f:
         for url in restaurant_urls:
