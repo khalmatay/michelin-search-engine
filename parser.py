@@ -4,6 +4,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 
+# function to parsing data from html
 def get_data(html_content):
     soup = BeautifulSoup(html_content, "html.parser")
 
@@ -42,9 +43,9 @@ def get_data(html_content):
     restaurant_data = {
         "restaurantName": restaurant_name,
         "address": address,
-        "city": city,  # Заполните на основе адреса, если возможно
-        "postalCode": postal_code,  # Заполните на основе адреса, если возможно
-        "country": country,  # Заполните на основе адреса, если возможно
+        "city": city,
+        "postalCode": postal_code,
+        "country": country,
         "priceRange": price_range,
         "cuisineType": cuisine_type,
         "description": description,
@@ -66,7 +67,7 @@ def main():
     restaurant_data_list = []
     count = 0
     data_folder = 'data'
-
+    # save data to csv
     for page in os.listdir(data_folder):
         page_path = os.path.join(data_folder, page)
         for link in os.listdir(page_path):
@@ -80,7 +81,7 @@ def main():
             restaurant_data_list.append(restaurant_data)
 
     restaurants_df = pd.DataFrame(restaurant_data_list, columns=columns)
-    restaurants_df.to_csv("restaurants_i.tsv", index=False, encoding="utf-8", sep = "\t")
+    restaurants_df.to_csv("restaurants_i.tsv", index=False, encoding="utf-8", sep="\t")
 
 
 if __name__ == "__main__":
