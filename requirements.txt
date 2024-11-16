@@ -6,3 +6,6 @@ tabulate
 plotly
 scipy
 scikit-learn
+jupyter_ui_poll
+ipywidgets
+python-dotenv
