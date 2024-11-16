@@ -6,207 +6,326 @@ from nltk.corpus import stopwords
 # Uncomment to download stopwords if they are not available
 # nltk.download('stopwords')
 from tabulate import tabulate
+import numpy as np
+from math import log10
+import ipywidgets as widgets
+from IPython.display import display
+import heapq
+from jupyter_ui_poll import ui_events
+import time
 
-
-def clener_pipeline(querry):
-    # Load a set of English stopwords to filter out common words that add little meaning
+# Text cleaning and preprocessing function
+def cleaner_pipeline(query):
+    """
+    Cleans and preprocesses the input text query.
+    - Removes non-alphanumeric characters.
+    - Converts text to lowercase.
+    - Removes stopwords and applies stemming.
+    """
+    # Load a set of English stopwords to filter out common words
     stop_words = set(stopwords.words("english"))
     
-    # Initialize a stemmer that reduces words to their root forms to help group similar words
+    # Initialize a stemmer to reduce words to their root forms
     stemmer = PorterStemmer()
     
-    # Remove any characters that are not letters or numbers from the input text
-    querry = re.sub(r"[^a-zA-Z0-9]", " ", querry)
+    # Remove non-alphanumeric characters
+    query = re.sub(r"[^a-zA-Z0-9]", " ", query)
     
-    # Replace any sequence of multiple spaces with a single space for clean formatting
-    querry = re.sub(r" +", " ", querry)
+    # Replace multiple spaces with a single space
+    query = re.sub(r" +", " ", query)
     
-    # Convert all characters in the input text to lowercase to standardize text format
-    querry = querry.lower()
+    # Convert to lowercase
+    query = query.lower()
     
-    # Split the text into words, removing any stopwords, and trim any surrounding whitespace
-    querry = [word.strip() for word in querry.split(" ") if word.lower() not in stop_words]
+    # Tokenize, remove stopwords, and trim whitespace
+    query = [word.strip() for word in query.split(" ") if word.strip() not in stop_words]
     
-    # Apply stemming to each word to reduce it to its root form, making words like "running" and "run" identical
-    processed_querry = [stemmer.stem(word) for word in querry]
+    # Apply stemming to each word
+    processed_query = [stemmer.stem(word) for word in query]
     
-    # Return the list of processed words for further analysis
-    return processed_querry
+    return processed_query
 
-
+# Clean a list of descriptions
 def description_cleaner(descriptions):
-    # Initialize an empty list to store the processed version of each description
+    """
+    Applies the cleaner_pipeline to a list of descriptions.
+    """
     result = []
-    
-    # Loop through each description in the input list and clean it using the cleaner_pipeline function
-    for descript in descriptions:
-        stemmed_words = clener_pipeline(descript)
-        
-        # Append the processed list of words for each description to the result list
+    for description in descriptions:
+        stemmed_words = cleaner_pipeline(description)
         result.append(stemmed_words)
-    
-    # Return the full list of cleaned and processed descriptions
     return result
 
-
+# Create a vocabulary from descriptions
 def vocabulary_creator(descriptions):
-    # Initialize a set of unique words using the words from the first description
+    """
+    Builds a unique vocabulary from the processed descriptions.
+    Assigns a unique ID to each word.
+    """
+    # Initialize a set of unique words
     unique_words = set(descriptions[0])
+    for description in descriptions[1:]:
+        unique_words |= set(description)
     
-    # Add words from each additional description to the set of unique words
-    for descr in descriptions[1:]:
-        unique_words = unique_words | set(descr)
-    
-    # Initialize a counter to assign a unique ID to each word
-    counter = 0
-    
-    # Create an empty dictionary to map each unique word to its corresponding ID
-    res = {}
-    
-    # Assign a unique ID to each word in the set of unique words
-    for word in unique_words:
-        # Skip empty strings to avoid errors in later processing
-        if word == "": continue
-        res[word] = counter
-        counter += 1
-    
-    # Call the word_to_id function, passing in the descriptions and the word-to-ID mapping
-    return word_to_id(descriptions, res)
+    # Assign unique IDs to each word
+    vocab = {}
+    for counter, word in enumerate(unique_words):
+        if word:  # Skip empty strings
+            vocab[word] = counter
 
+    return word_to_id(descriptions, vocab)
 
+# Convert descriptions to word IDs
 def word_to_id(descriptions, vocab):
-    # Initialize an empty list to store the ID representation of each description
-    result = []
+    """
+    Converts each word in descriptions into its corresponding ID from the vocabulary.
+    """
+    result = {}
+    for index, one_description in enumerate(descriptions):
+        word_ids = [vocab[word] for word in one_description if word]
+        result[index] = word_ids
     
-    # Process each description individually
-    for one_description in descriptions:
-        # Initialize a list to store the IDs of words in the current description
-        mono_result = []
-        
-        # Look up each word in the current description in the vocab dictionary to get its ID
-        for word in one_description:
-            # Skip empty strings to avoid issues in ID mapping
-            if word == "" : continue
-            mono_result.append(vocab[word])
-        
-        # Append the list of word IDs for the current description to the result list
-        result.append(mono_result)
-    
-    # Return a list of word IDs for each description and the vocabularys
-    return [result, vocab]
+    return result, vocab
 
-
+# Create a reverse index mapping words to documents
 def reverse_index_creator(ID_descriptions):
-    # Initialize an empty dictionary to store the reverse index
+    """
+    Creates a reverse index mapping word IDs to the document IDs where they appear.
+    """
     reverse_index = {}
-    
-    # Enumerate each description to get its index (doc_id) and list of word IDs
-    for doc_id, word_ids in enumerate(ID_descriptions):
-        # Process each word ID in the current description
+    for doc_id, word_ids in ID_descriptions.items():
         for word_id in word_ids:
-            # If the word ID is not already in the reverse index, initialize it with an empty list
             if word_id not in reverse_index:
                 reverse_index[word_id] = []
-            # Append the document ID to the list of documents where the word appears
             reverse_index[word_id].append(doc_id)
-    
-    # Return the completed reverse index mapping each word ID to the documents it appears in
     return reverse_index
 
-
-def restourants_matcher(matching_resturants):
-    # Initialize a set containing the IDs of the restaurants in the first list
-    matches = set(matching_resturants[0])
-    
-    # Perform an intersection with each subsequent list to keep only matching restaurant IDs
-    for restourant in matching_resturants[1:]:
-        matches &= set(restourant)
-    
-    # Convert the final set of matching restaurant IDs to a list and return it
+# Match restaurants based on common word IDs
+def restaurants_matcher(matching_restaurants):
+    """
+    Finds restaurants that match based on the intersection of word IDs.
+    """
+    matches = set(matching_restaurants[0])
+    for restaurant in matching_restaurants[1:]:
+        matches &= set(restaurant)
     return list(matches)
 
-
+# Compute term frequency (TF)
 def compute_TF(descriptions):
+    """
+    Computes the term frequency (TF) for each word in each description.
+    """
     TF_res = {}
-    for index, descirpt in enumerate(descriptions):
-        one_restourant_result = {}
-        tot_words = len(descirpt)
-        for word in descirpt:
-            one_restourant_result[word] = one_restourant_result.get(word, 0) + 1 / tot_words
-        one_restourant_result = list(one_restourant_result.items())
-        TF_res[index] = one_restourant_result
-    
+    for index, description in descriptions.items():
+        if index not in TF_res:
+            TF_res[index] = []
+        total_words = len(description)
+        for word in description:
+            TF_res[index].append((word, description.count(word) / total_words))
     return TF_res
 
-
-def compute_IDF(reverse_index, tot_documents):
+# Compute inverse document frequency (IDF)
+def compute_IDF(reverse_index, total_documents):
+    """
+    Computes the inverse document frequency (IDF) for each word ID.
+    """
     result_IDF = {}
-
     for word, doc_list in reverse_index.items():
-        word_IDF = log(tot_documents/len(doc_list))
-        result_IDF[word] = word_IDF
-    
+        idf_value = log10(total_documents / len(doc_list))
+        result_IDF[word] = idf_value
     return result_IDF
 
-
+# Compute TF-IDF scores
 def compute_TF_IDF(tf_dict, idf_dict):
-
+    """
+    Computes the TF-IDF scores for each word-document pair.
+    """
     tf_idf_result = {}
-
-    for restournat, word_and_tf in tf_dict.items():
+    for restaurant, word_and_tf in tf_dict.items():
         for word, TF_value in word_and_tf:
-
             if word not in tf_idf_result:
                 tf_idf_result[word] = []
-            
-            idf_val = idf_dict.get(word, 0)
-
-            tf_idf = TF_value * idf_val
-
-            tf_idf_result[word].append((restournat, tf_idf))
-    
+            tf_idf = TF_value * idf_dict.get(word, 0)
+            tf_idf_result[word].append((restaurant, tf_idf))
     return tf_idf_result
 
-def reverse_TF_IDF(reverse_index_tf_idf):
+# Display top-k matching restaurants
+def top_k_printer(matching_restaurants, restaurants_df, top_k_to_print):
+    """
+    Displays the top-k matching restaurants in a formatted table.
+    """
+    print(f"We found {len(matching_restaurants)} matches!\n")
     
-    # Initialize normal index as a defaultdict of lists
-    normal_index = {}
-
-    # Iterate through reverse index to create the normal index
-    for word, doc_list in reverse_index_tf_idf.items():
-        for doc_id, tfidf_value in doc_list:
-            if doc_id not in normal_index:
-                normal_index[doc_id] = []
-            normal_index[doc_id].append((word, tfidf_value))
-    
-    return normal_index
-
-
-def top_k_printer(matching_resturants, restaurants_df):
-    # Print the number of matching restaurants found
-    print(f"We found {len(matching_resturants)} matches!\n")
-    
-    # Check if any restaurants match the query; exit if no matches were found
-    if len(matching_resturants) == 0:
+    if len(matching_restaurants) == 0:
         print("We don't have that in the kitchen!\nChoose something else.")
-        return False  # Exit if no matching restaurants were found
+        return False
     
-    # Filter the DataFrame to only include rows with matching restaurant IDs
-    restaurants_df = restaurants_df.loc[matching_resturants, ["restaurantName", "address", "description", "website"]]
+    # Filter and format the DataFrame
+    restaurants_df = restaurants_df.loc[matching_restaurants, ["restaurantName", "address", "description", "website"]]
+    restaurants_df["description"] = [
+        desc[:47] + "..." if len(desc) > 30 else desc for desc in restaurants_df["description"]
+    ]
     
-    # Truncate the description to 47 characters and add "..." if it exceeds 30 characters
-    restaurants_df["description"] = [descript[0:47] + "..." if len(descript) > 30 else descript for descript in restaurants_df["description"]]
-    
-    # Display the top 5 matches in a formatted table with specific headers and settings
+    # Display the table
     print(tabulate(
-        restaurants_df.iloc[:5],  # Select only the top 5 matching restaurants
-        headers=["Restaurant Name", "Address", "Description", "Website"],  # Column headers for the table
-        tablefmt="rounded_grid",  # Table format style
-        showindex=False,  # Hide row index in the display
-        maxcolwidths=25  # Maximum width for each column to ensure readability
+        restaurants_df.iloc[:top_k_to_print],
+        headers=["Restaurant Name", "Address", "Description", "Website"],
+        tablefmt="rounded_grid",
+        showindex=False,
+        maxcolwidths=25
     ))
-    
-    # Return True to indicate that matching restaurants were successfully displayed
     return True
 
-# def cosine_similarity():
+# Normalize vectors for cosine similarity
+def normalize_vectors(vector):
+    """
+    Normalizes a vector to have a magnitude of 1 (unit vector).
+    """
+    norm = np.linalg.norm(vector)
+    if norm == 0:
+        return vector
+    return vector / norm
+
+
+
+
+def drop_down_menu(facilities, cusine_types):
+    global ui_done
+    ui_done = False
+    result = {"value" : ("", "", "", "", "", "")}
+
+    def on_button_click(_):
+        global ui_done
+        facility_choosen = [checkbox.description for checkbox in checkboxes if checkbox.value]
+        if  len(facility_choosen) == 0:
+            facility_choosen = ["0"]
+        elif facility_choosen[0] == "don't care":
+            facility_choosen = ["0"]
+
+        cusine = cusine_dropdown.value
+        if cusine == "don't care": cusine = ["0"]
+        
+        
+        min_money, max_money = (money_slider.value)
+
+        k = k_to_print.value
+
+        querry = querry_box.value
+        result["value"] = (querry, facility_choosen, cusine, min_money, max_money, k)
+        ui_done = True
+        
+    
+    querry_box = widgets.Text(
+        placeholder = "type something",
+        description = "what do you want to eat?",
+        value = "modern seasonal cuisine",
+        style={'description_width': 'initial'}
+    )
+
+    facilities.insert(0, "don't care")
+    checkboxes = [
+        widgets.Checkbox(value=False, description=option, layout=widgets.Layout(min_width="auto", max_width="auto"))
+        for option in facilities
+        ]
+    
+    max_width = 3
+    rows = [
+        widgets.HBox(checkboxes[i:i + max_width], layout=widgets.Layout(justify_content="flex-start"))
+        for i in range(0, len(checkboxes), max_width)
+        ]
+    facilities_grid = widgets.VBox(rows)
+
+    money_options = [("€", 1),("€€", 2),("€€€", 3),("€€€€", 4)]
+    money_slider = widgets.SelectionRangeSlider(
+        options = money_options,
+        index=(0, 3),  # Indices corresponding to "€" and "€€€€"
+        description="Choose a price range:",
+        style={'description_width': 'initial'},  # Adjusts the description width
+        layout=widgets.Layout(width='45%')
+        )
+
+    k_to_print = widgets.BoundedIntText(
+        value=5,
+        min=0,
+        step=1,
+        description='How many restourants to display?',
+        disabled=False,
+        style={'description_width': 'initial'},  # Adjusts the description width
+        layout=widgets.Layout(width='45%')
+        )
+
+    button_querry = widgets.Button(description="Serch for some restournats",
+                                   layout = widgets.Layout(width = "250px"))
+    
+    button_querry.on_click(on_button_click)
+
+    cusine_types.insert(0, "don't care")
+    cusine_dropdown = widgets.Dropdown(
+        options = cusine_types,
+        description = "Choose the cusine specialty: ",
+        disabled = False,
+        style={'description_width': 'initial'}
+    )
+
+    display(querry_box, k_to_print, money_slider, cusine_dropdown, facilities_grid, button_querry)
+
+    with ui_events() as poll:
+        while ui_done is False:
+            poll(100)          # React to UI events (up to 10 at a time)
+            time.sleep(0.1)
+    return result["value"]
+
+def extract_facilities(faci):
+    res_facility = set()
+    for restourant_facilities in faci:
+        restourant_facilities = restourant_facilities.lower()
+        restourant_facilities = re.sub(r"[\[\]\']", " ", restourant_facilities)
+        restourant_facilities = re.sub(r" +", " ", restourant_facilities)
+        res_facility = res_facility | set(restourant_facilities.split(", "))
+        res_facility.discard("")
+    return list(res_facility)
+
+
+
+def upgrade_TF_IDF_score(restaurants_df, facility_choosen, cusine_choosen, min_money, max_money, k):
+    '''
+    priceRange
+    cuisineType
+    facilitiesServices
+    cosine_score
+    ["Restaurant Name", "Address", "Description", "Website", "Cosine"]
+    '''
+    top_k_heap = []
+    new_cosine = []
+    for i, (index, row) in enumerate(restaurants_df.iterrows()):
+        cost = extract_facilities([row.priceRange])
+        cusine = extract_facilities([row.cuisineType])
+        facility = extract_facilities([row.facilitiesServices])
+        cosine_score = row.cosine_score
+        # print("Money :", cost.count("€"), min_money, max_money, sep=" ")
+        # print("cost before :", cosine_score)
+        if cost.count("€") >= min_money and cost.count("€") <= max_money:
+            cosine_score += 0.2
+        # print(set(cusine_choosen)&set(cusine))
+        cosine_score += 0.2*len(set(cusine_choosen)&set(cusine))
+        # print(set(facility_choosen)&set(facility))
+        cosine_score += 0.2*len(set(facility_choosen)&set(facility))
+        
+        new_cosine.append(cosine_score)
+
+        if len(top_k_heap) < k:
+            heapq.heappush(top_k_heap, (cosine_score, i))
+        else:
+            if cosine_score > top_k_heap[0][0]:  # Compare with the smallest element in the heap
+                heapq.heapreplace(top_k_heap, (cosine_score, i))  # Replace the smallest directly
+
+        # print("cosine after: ", cosine_score, end="\n\n")
+    restaurants_df["cosine_score"] = new_cosine
+    to_return = [tup[1] for tup in top_k_heap]
+    return restaurants_df.iloc[to_return].sort_values(by="cosine_score", ascending=False)
+        
+
+
+
+
+
