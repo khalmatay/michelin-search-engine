@@ -162,3 +162,7 @@ cython_debug/
 .idea/
 data/
 .env/
+restaurants_i.tsv/
+restaurant_urls.txt/
+vocabulary.csv/
+italy_cities_regions.tsv/
