@@ -12,11 +12,8 @@ finocchighersi.1918400@studenti.uniroma1.it
 Welcome to the **ADM-HW3** project! This repository contains the solution to the Homework 3 assignment for the ADM course at Sapienza University of Rome. The main goal of this homework is to create a search engine for the **2025 list of Michelin restaurants**.  
 
 ---
-### Note to TA's and reviewers
-Due to GitHub's limitations with displaying interactive graphs from the Plotly library and our UI search Engine, we followed the TA's recommendation to place `main.ipynb` in a public Google Drive folder. The code has been executed there, and now the interactive graphs, which couldn't be shown on GitHub, are available.
-
-Here is the link to the Google Drive folder containing the file: [main.ipynb](https://drive.google.com/drive/folders/1rRZ-I2nrcCurl0CJufRs6lONLLtKO56T?hl=it)
-Nbviewer doesn't show UI search Engine [main.ipynb](https://nbviewer.org/github/khalmatay/ADM-HW3/blob/main/main.ipynb)
+## Note to TA's and reviewers!!!
+Here is the link to nbviewer. It doesn't show the UI search Engine [main.ipynb](https://nbviewer.org/github/khalmatay/ADM-HW3/blob/main/main.ipynb)
 
 
 
