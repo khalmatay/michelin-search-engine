@@ -16,6 +16,8 @@ Welcome to the **ADM-HW3** project! This repository contains the solution to the
 Due to GitHub's limitations with displaying interactive graphs from the Plotly library and our UI search Engine, we followed the TA's recommendation to place `main.ipynb` in a public Google Drive folder. The code has been executed there, and now the interactive graphs, which couldn't be shown on GitHub, are available.
 
 Here is the link to the Google Drive folder containing the file: [main.ipynb](https://drive.google.com/drive/folders/1rRZ-I2nrcCurl0CJufRs6lONLLtKO56T?hl=it)
+Nbviewer doesn't show UI search Engine [main.ipynb](https://nbviewer.org/github/khalmatay/ADM-HW3/blob/main/main.ipynb)
+
 
 
 
