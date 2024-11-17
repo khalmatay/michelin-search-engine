@@ -206,13 +206,8 @@ def drop_down_menu(facilities, cusine_types):
     def on_button_click(_):
         global ui_done
         facility_choosen = [checkbox.description for checkbox in checkboxes if checkbox.value]
-        if len(facility_choosen) == 0:
-            facility_choosen = ["0"]
-        elif facility_choosen[0] == "don't care":
-            facility_choosen = ["0"]
 
         cusine = cusine_dropdown.value
-        if cusine == "don't care": cusine = ["0"]
 
         min_money, max_money = (money_slider.value)
 
@@ -228,11 +223,15 @@ def drop_down_menu(facilities, cusine_types):
         value="modern seasonal cuisine",
         style={'description_width': 'initial'}
     )
+    
+    facilities.insert(0, "I don't mind")
+    unique_facility = []
+    facilities = [unique_facility.append(facility) for facility in facilities if facility not in unique_facility]
 
-    facilities.insert(0, "don't care")
+    
     checkboxes = [
-        widgets.Checkbox(value=False, description=option, layout=widgets.Layout(min_width="auto", max_width="auto"))
-        for option in facilities
+        widgets.Checkbox(value=False, description=option, layout=widgets.Layout(max_width="auto"))
+        for option in unique_facility
     ]
 
     max_width = 3
@@ -266,7 +265,7 @@ def drop_down_menu(facilities, cusine_types):
 
     button_querry.on_click(on_button_click)
 
-    cusine_types.insert(0, "don't care")
+    cusine_types.insert(0, "any taste will do!")
     cusine_dropdown = widgets.Dropdown(
         options=cusine_types,
         description="Choose the cusine specialty: ",
@@ -278,8 +277,9 @@ def drop_down_menu(facilities, cusine_types):
 
     with ui_events() as poll:
         while ui_done is False:
-            poll(100)  # React to UI events (up to 10 at a time)
+            poll(10)  # React to UI events (up to 10 at a time)
             time.sleep(0.1)
+
     return result["value"]
 
 
@@ -289,8 +289,7 @@ def extract_facilities(faci):
         restourant_facilities = restourant_facilities.lower()
         restourant_facilities = re.sub(r"[\[\]\']", " ", restourant_facilities)
         restourant_facilities = re.sub(r" +", " ", restourant_facilities)
-        res_facility = res_facility | set(restourant_facilities.split(", "))
-        res_facility.discard("")
+        res_facility |= set(restourant_facilities.split(", ")) 
     return list(res_facility)
 
 
@@ -305,9 +304,9 @@ def upgrade_TF_IDF_score(restaurants_df, facility_choosen, cusine_choosen, min_m
     top_k_heap = []
     new_cosine = []
     for i, (index, row) in enumerate(restaurants_df.iterrows()):
-        cost = extract_facilities([row.priceRange])
-        cusine = extract_facilities([row.cuisineType])
-        facility = extract_facilities([row.facilitiesServices])
+        cost = extract_facilities(row["priceRange"])
+        cusine = extract_facilities(row["cuisineType"])
+        facility = extract_facilities(row["facilitiesServices"])
         cosine_score = row.cosine_score
         # print("Money :", cost.count("€"), min_money, max_money, sep=" ")
         # print("cost before :", cosine_score)
@@ -332,7 +331,157 @@ def upgrade_TF_IDF_score(restaurants_df, facility_choosen, cusine_choosen, min_m
     return restaurants_df.iloc[to_return].sort_values(by="cosine_score", ascending=False)
 
 
+def advanced_drop_down_menu(facilities, cusine_types, regions, credit_cards):
+    global ui_done
+    ui_done = False
+    result = {"value": ("", "", "", "", "", "", "", "")}
+
+    def on_button_click(_):
+        global ui_done
+        facility_choosen = [checkbox.description for checkbox in checkboxes if checkbox.value]
+        card_choosen = [card_ceckbox.description for card_ceckbox in card_ceckboxes if card_ceckbox.value]
+        cusine = cusine_dropdown.value
+        region_choosen = region_dropdown.value
+        min_money, max_money = (money_slider.value)
+
+        k = k_to_print.value
+
+        querry = querry_box.value
+        result["value"] = (querry, facility_choosen, cusine, min_money, max_money, k, region_choosen, card_choosen)
+        ui_done = True
+
+    querry_box = widgets.Text(
+        placeholder="type something",
+        description="what do you want to eat?",
+        value="modern seasonal cuisine",
+        style={'description_width': 'initial'}
+    )
+    
+    facilities.insert(0, "I don't mind")
+    unique_facility = []
+    facilities = [unique_facility.append(facility) for facility in facilities if facility not in unique_facility]
+    
+    checkboxes = [
+        widgets.Checkbox(value=False, description=option, layout=widgets.Layout(max_width="auto"))
+        for option in unique_facility
+    ]
+
+    max_width = 3
+    rows = [
+        widgets.HBox(checkboxes[i:i + max_width], layout=widgets.Layout(justify_content="flex-start"))
+        for i in range(0, len(checkboxes), max_width)
+    ]
+    facilities_grid = widgets.VBox(rows)
+
+    money_options = [("€", 1), ("€€", 2), ("€€€", 3), ("€€€€", 4)]
+    money_slider = widgets.SelectionRangeSlider(
+        options=money_options,
+        index=(0, 3),  # Indices corresponding to "€" and "€€€€"
+        description="Choose a price range:",
+        style={'description_width': 'initial'},  # Adjusts the description width
+        layout=widgets.Layout(width='45%')
+    )
+
+    k_to_print = widgets.BoundedIntText(
+        value=5,
+        min=0,
+        step=1,
+        description='How many restourants to display?',
+        disabled=False,
+        style={'description_width': 'initial'},  # Adjusts the description width
+        layout=widgets.Layout(width='45%')
+    )
+
+    button_querry = widgets.Button(description="Serch for some restournats",
+                                   layout=widgets.Layout(width="250px"))
+
+    button_querry.on_click(on_button_click)
+
+    cusine_types.insert(0, "any taste will do!")
+    cusine_dropdown = widgets.Dropdown(
+        options=cusine_types,
+        description="Choose the cusine specialty: ",
+        disabled=False,
+        style={'description_width': 'initial'}
+    )
+    unique_regions = []
+    regions = [unique_regions.append(x) for x in regions if x not in unique_regions]
+    region_dropdown = widgets.Dropdown(
+        options=unique_regions,
+        description="Restrict serch to region: ",
+        disabled=False,
+        style={'description_width': 'initial'}
+    )
+
+    unique_cards = []
+    credit_cards = [unique_cards.append(x.strip()) for x in credit_cards if x.strip() not in unique_cards]
+    card_ceckboxes = [
+        widgets.Checkbox(value=False, description=option, layout=widgets.Layout(max_width="auto"))
+        for option in unique_cards
+    ]
+
+    max_width = 5
+    rows = [
+        widgets.HBox(card_ceckboxes[i:i + max_width], layout=widgets.Layout(justify_content="flex-start"))
+        for i in range(0, len(card_ceckboxes), max_width)
+    ]
+
+    card_grid = widgets.VBox(rows)
+    display(querry_box, k_to_print, money_slider, cusine_dropdown, facilities_grid, region_dropdown, card_grid, button_querry)
+
+    with ui_events() as poll:
+        while ui_done is False:
+            poll(10)  # React to UI events (up to 10 at a time)
+            time.sleep(0.1)
+
+    return result["value"]
 
 
 
+def advanced_upgrade_TF_IDF_score(restaurants_df, facility_choosen, cusine_choosen, min_money, max_money, k, regions, credit_cards):
+    '''
+    priceRange
+    cuisineType
+    facilitiesServices
+    cosine_score
+    ["Restaurant Name", "Address", "Description", "Website", "Cosine"]
+    '''
+    top_k_heap = []
+    new_cosine = []
+    for i, (index, row) in enumerate(restaurants_df.iterrows()):
+        cost = extract_facilities(row["priceRange"])
+        cusine = extract_facilities(row["cuisineType"])
+        facility = extract_facilities(row["facilitiesServices"])
+        row_region = row["region"]
+        cards = extract_facilities(row["creditCards"])
+        cosine_score = row.cosine_score
 
+        if row_region != regions:
+            continue
+        
+        if len(set(cards) & set(cards)) == 0:
+            continue
+
+
+        if cost.count("€") >= min_money and cost.count("€") <= max_money:
+            cosine_score += 0.2
+        # print(set(cusine_choosen)&set(cusine))
+        cosine_score += 0.2 * len(set(cusine_choosen) & set(cusine))
+        # print(set(facility_choosen)&set(facility))
+        cosine_score += 0.2 * len(set(facility_choosen) & set(facility))
+
+
+
+        new_cosine.append(cosine_score)
+
+        if len(top_k_heap) < k:
+            heapq.heappush(top_k_heap, (cosine_score, i))
+        else:
+            if cosine_score > top_k_heap[0][0]:  # Compare with the smallest element in the heap
+                heapq.heapreplace(top_k_heap, (cosine_score, i))  # Replace the smallest directly
+
+        # print("cosine after: ", cosine_score, end="\n\n")
+    restaurants_df = restaurants_df.iloc[ [tup[1] for tup in top_k_heap]]
+    restaurants_df["cosine_score"] = [tup[0] for tup in top_k_heap]
+
+    return restaurants_df.sort_values(by="cosine_score", ascending=False)
