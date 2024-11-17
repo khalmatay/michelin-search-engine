@@ -156,10 +156,15 @@ At this point, you should have all the HTML documents about the restaurants of i
 
 ## **Search Engine** 
 ### UI input
-![UI interface search](img.png)
+![UI interface search](images/img.png)
 ### Output dataframe
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 
 ## **Map** 
-![img_2.png](img_2.png)
+![img_2.png](images/img_2.png)
+
+## **BONUS: Advanced Search Engine** 
+![img_3.png](images/img_3.png)
+
+
 
