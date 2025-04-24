@@ -3,8 +3,6 @@
 ## Group 21 members
 1. Nurbek Khalmatay, 2184569, khalmatay.2184569@studenti.uniroma1.it
 2. Francesco de Martino, 1908303 demartino.1908303@studenti.uniroma1.it
-3. Giacomo Finocchi Ghersi, 1918400
-finocchighersi.1918400@studenti.uniroma1.it
 ---
 
 ![Michelin Guide Logo](https://guide.michelin.com/assets/images/michelin-guide-logo-dark.svg)
